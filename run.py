@@ -144,6 +144,7 @@ def post(repo, issue, token, table):
         )
         print(f"response: {response}")
 
+print(f"os.environ: {os.environ}")
 
 public_key = os.environ["PUBLIC_KEY"]
 print(f"public_key: {public_key}")
