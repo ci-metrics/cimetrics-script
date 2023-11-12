@@ -146,8 +146,12 @@ def post(repo, issue, token, table):
 
 
 public_key = os.environ["PUBLIC_KEY"]
-private_key = int(os.environ["PRIVATE_KEY"])
+print(f"public_key: {public_key}")
+private_key_str = os.environ["PRIVATE_KEY"]
+print(f"private_key_str: {private_key_str}")
+private_key = int(private_key_str)
 head = os.environ["HEAD"]
+print(f"head: {head}")
 
 DATA_TEXT = "DATA_TEXT"
 DATA_FILE = "DATA_FILE"
