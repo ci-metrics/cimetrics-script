@@ -12,6 +12,13 @@ GITHUB_REPO_API = "https://api.github.com/repos/"
 # Uploads metrics
 def upload(sha, public_key, private_key, data, repo):
     print(f"Running upload.")
+
+    url = f"{ADDR}metrics"
+    print(f"url: {url}")
+
+    headers = {"Content-Type": "application/json"}
+    print(f"headers: {headers}")
+
     payload = json.dumps(
         {
             "user": {
@@ -24,17 +31,26 @@ def upload(sha, public_key, private_key, data, repo):
         }
     )
     print(f"payload: {payload}")
+
     response = requests.post(
-        url=f"{ADDR}metrics",
+        url=url,
         data=payload,
-        headers={"Content-Type": "application/json"},
+        headers=headers,
     )
+    print(f"response: {response}")
     assert response.status_code == 200
 
 
 # Gets metrics difference
 def diff(base, head, public_key, private_key):
     print(f"Running diff.")
+
+    url = f"{ADDR}diff"
+    print(f"url: {url}")
+
+    headers = {"Content-Type": "application/json"}
+    print(f"headers: {headers}")
+
     payload = json.dumps(
         {
             "user": {
@@ -46,19 +62,22 @@ def diff(base, head, public_key, private_key):
         }
     )
     print(f"payload: {payload}")
+
     response = requests.get(
-        url=f"{ADDR}diff",
+        url=url,
         data=payload,
-        headers={"Content-Type": "application/json"},
+        headers=headers,
     )
     print(f"response: {response}")
-    assert response.status_code == 200
-    print(f"response.json(): {response.json()}")
-    diff = response.json()
-    table = "Metric|∆%|∆|Old|New\n---|--:|--:|--:|--:\n"
 
+    assert response.status_code == 200
+
+    response_json = response.json()
+    print(f"response_json: {response_json}")
+
+    table = "Metric|∆%|∆|Old|New\n---|--:|--:|--:|--:\n"
     table_set = []
-    for key, value in diff.items():
+    for key, value in response_json.items():
         x = value["from"]
         y = value["to"]
         if x != None and y != None:
@@ -107,20 +126,28 @@ def post(repo, issue, token, table):
     print(f"Running post.")
 
     # Get list of comments
+    url = f"{GITHUB_REPO_API}{repo}/issues/{issue}/comments"
+    print(f"url: {url}")
+
     headers = {
         "Accept": "application/vnd.github+json",
         "Authorization": f"Bearer {token}",
         "X-GitHub-Api-Version": "2022-11-28",
     }
+    print(f"headers: {headers}")
+
     response = requests.get(
-        url=f"{GITHUB_REPO_API}{repo}/issues/{issue}/comments",
+        url=url,
         headers=headers,
     )
     print(f"response: {response}")
-    print(f"response.json(): {response.json()}")
-    comments = response.json()
+    assert response.status_code == 200
+
+    response_json = response.json()
+    print(f"response_json: {response_json}")
+
     id = None
-    for comment in comments:
+    for comment in response_json:
         if comment["body"].startswith(CI_METRICS_HEADER):
             id = comment["id"]
     print(f"id: {id}")
@@ -129,20 +156,29 @@ def post(repo, issue, token, table):
 
     # If CI metrics comment is not present, post it.
     if id == None:
+        url = f"{GITHUB_REPO_API}{repo}/issues/{issue}/comments"
+        print(f"url: {url}")
+
         response = requests.post(
-            url=f"{GITHUB_REPO_API}{repo}/issues/{issue}/comments",
+            url=url,
             data=payload,
             headers=headers,
         )
         print(f"response: {response}")
+        assert response.status_code == 200
     # Else if CI metrics comment present, update it.
     else:
+        url = f"{GITHUB_REPO_API}{repo}/issues/comments/{id}"
+        print(f"url: {url}")
+
         response = requests.patch(
-            url=f"{GITHUB_REPO_API}{repo}/issues/comments/{id}",
+            url=url,
             data=payload,
             headers=headers,
         )
         print(f"response: {response}")
+        assert response.status_code == 200
+
 
 print(f"os.environ: {os.environ}")
 
