@@ -4,7 +4,7 @@ import os
 import json
 import sys
 
-ADDR = "http://3.10.39.149:3000/"
+ADDR = "https://cimetrics.io/"
 CI_METRICS_HEADER = "### CI Metrics"
 GITHUB_REPO_API = "https://api.github.com/repos/"
 
