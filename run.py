@@ -99,7 +99,7 @@ def diff(base, head, public_key, private_key):
                     "NaN",
                     "NaN",
                     "None" if x is None else f"{x:,}",
-                    "None" if y is None else f"{x:,}",
+                    "None" if y is None else f"{y:,}",
                 )
             )
     print(f"table_set: {table_set}")
