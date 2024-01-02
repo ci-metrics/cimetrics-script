@@ -165,7 +165,7 @@ def post(repo, issue, token, table):
             headers=headers,
         )
         print(f"response: {response}")
-        assert response.status_code == 200
+        assert response.status_code == 201
     # Else if CI metrics comment present, update it.
     else:
         url = f"{GITHUB_REPO_API}{repo}/issues/comments/{id}"
