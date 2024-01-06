@@ -122,7 +122,7 @@ def diff(base, head, public_key, private_key):
 
 
 # Posts metrics difference on PRs
-def post(repo, issue, token, table):
+def post(repo, issue, token, table, base, head):
     print(f"Running post.")
 
     # Get list of comments
@@ -152,7 +152,11 @@ def post(repo, issue, token, table):
             id = comment["id"]
     print(f"id: {id}")
 
-    payload = json.dumps({"body": f"{CI_METRICS_HEADER}\n{table}"})
+    payload = json.dumps(
+        {
+            "body": f"{CI_METRICS_HEADER}\n{table}\n🔍 View full report in CIMetrics at `https://cimetrics.io/display/<public key>/<private key>/{base}/{head}`."
+        }
+    )
 
     # If CI metrics comment is not present, post it.
     if id == None:
@@ -223,7 +227,7 @@ token = os.environ.get(TOKEN)
 
 if base is not None and issue is not None and token is not None and repo is not None:
     table = diff(base, head, public_key, private_key)
-    post(repo, issue, token, table)
+    post(repo, issue, token, table, base, head)
 elif base is None and issue is None and token is None:
     print(f"None of `{BASE}`, `{ISSUE}` or `{TOKEN}` set, skipping diff.")
 else:
