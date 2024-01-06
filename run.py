@@ -45,7 +45,7 @@ def upload(sha, public_key, private_key, data, repo):
 def diff(base, head, public_key, private_key):
     print(f"Running diff.")
 
-    url = f"{ADDR}diff"
+    url = f"{ADDR}commits"
     print(f"url: {url}")
 
     headers = {"Content-Type": "application/json"}
@@ -53,12 +53,9 @@ def diff(base, head, public_key, private_key):
 
     payload = json.dumps(
         {
-            "user": {
-                "public_key": public_key,
-                "private_key": private_key,
-            },
-            "from": base,
-            "to": head,
+            "public_key": public_key,
+            "private_key": private_key,
+            "commits": [base, head],
         }
     )
     print(f"payload: {payload}")
@@ -75,9 +72,25 @@ def diff(base, head, public_key, private_key):
     response_json = response.json()
     print(f"response_json: {response_json}")
 
-    table = "Metric|∆%|∆|Old|New\n---|--:|--:|--:|--:\n"
+    assert base in response_json
+    assert head in response_json
+
+    changes = {}
+    commit_one = response_json[base]
+    for key, value in commit_one.items():
+        changes[key] = {"from": value, "to": None}
+
+    commit_two = response_json[head]
+    for key, value in commit_two.items():
+        if key in changes:
+            changes[key]["to"] = value
+        else:
+            changes[key] = {"from": None, "to": value}
+
+    print(f"changes: {changes}")
+
     table_set = []
-    for key, value in response_json.items():
+    for key, value in changes.items():
         x = value["from"]
         y = value["to"]
         if x != None and y != None:
@@ -114,6 +127,8 @@ def diff(base, head, public_key, private_key):
     table_set.sort(reverse=True, key=get_sort_key)
 
     print(f"table_set: {table_set}")
+
+    table = "Metric|∆%|∆|Old|New\n---|--:|--:|--:|--:\n"
     for components in table_set:
         table += "|".join(components)
         table += "\n"
