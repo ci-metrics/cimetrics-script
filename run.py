@@ -54,7 +54,7 @@ def diff(base, head, public_key, private_key):
     payload = json.dumps(
         {
             "public_key": public_key,
-            "private_key": private_key,
+            "private_key": f"{private_key}",
             "commits": [base, head],
         }
     )
