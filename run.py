@@ -60,7 +60,7 @@ def diff(base, head, public_key, private_key):
     )
     print(f"payload: {payload}")
 
-    response = requests.get(
+    response = requests.post(
         url=url,
         data=payload,
         headers=headers,
