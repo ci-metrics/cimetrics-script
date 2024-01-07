@@ -169,7 +169,7 @@ def post(repo, issue, token, table, base, head):
 
     payload = json.dumps(
         {
-            "body": f"{CI_METRICS_HEADER}\n{table}\n🔍 View full report in CIMetrics at `https://cimetrics.io/display/<public key>/<private key>/{base}/{head}`."
+            "body": f"{CI_METRICS_HEADER}\n{table}\n🔍 View full report in CIMetrics at `https://cimetrics.io/display/<public key>/<private key>/{repo}/<your branch>/{base}/{head}`."
         }
     )
 
