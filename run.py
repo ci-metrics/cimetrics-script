@@ -12,7 +12,7 @@ GITHUB_REPO_API = "https://api.github.com/repos/"
 def login(public_key, private_key):
     print("Logging in")
 
-    url = f"{ADDR}/login"
+    url = f"{ADDR}login"
     print(f"url: {url}")
 
     headers = {"Content-Type": "application/json"}
