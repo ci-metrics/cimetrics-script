@@ -9,11 +9,10 @@ CI_METRICS_HEADER = "### CI Metrics"
 GITHUB_REPO_API = "https://api.github.com/repos/"
 
 
-# Uploads metrics
-def upload(sha, public_key, private_key, data, repo):
-    print(f"Running upload.")
+def login(public_key, private_key):
+    print("Logging in")
 
-    url = f"{ADDR}metrics"
+    url = f"{ADDR}/login"
     print(f"url: {url}")
 
     headers = {"Content-Type": "application/json"}
@@ -21,13 +20,8 @@ def upload(sha, public_key, private_key, data, repo):
 
     payload = json.dumps(
         {
-            "user": {
-                "public_key": public_key,
-                "private_key": private_key,
-            },
-            "sha": sha,
-            "repo": repo,
-            "metrics": data,
+            "public_key": public_key,
+            "private_key": private_key,
         }
     )
     print(f"payload: {payload}")
@@ -40,9 +34,37 @@ def upload(sha, public_key, private_key, data, repo):
     print(f"response: {response}")
     assert response.status_code == 200
 
+    return response.cookies
+
+
+# Uploads metrics
+def upload(session_cookie, sha, public_key, private_key, data, repo):
+    print("Running upload.")
+
+    url = f"{ADDR}metrics"
+    print(f"url: {url}")
+
+    headers = {"Content-Type": "application/json"}
+    print(f"headers: {headers}")
+
+    payload = json.dumps(
+        {
+            "sha": sha,
+            "repo": repo,
+            "metrics": data,
+        }
+    )
+    print(f"payload: {payload}")
+
+    response = requests.post(
+        url=url, data=payload, headers=headers, cookies=session_cookie
+    )
+    print(f"response: {response}")
+    assert response.status_code == 200
+
 
 # Gets metrics difference
-def diff(base, head, public_key, private_key):
+def diff(session_cookie, base, head, public_key, private_key):
     print(f"Running diff.")
 
     url = f"{ADDR}commits"
@@ -53,17 +75,13 @@ def diff(base, head, public_key, private_key):
 
     payload = json.dumps(
         {
-            "public_key": public_key,
-            "private_key": f"{private_key}",
             "commits": [base, head],
         }
     )
     print(f"payload: {payload}")
 
     response = requests.post(
-        url=url,
-        data=payload,
-        headers=headers,
+        url=url, data=payload, headers=headers, cookies=session_cookie
     )
     print(f"response: {response}")
 
@@ -169,7 +187,7 @@ def post(repo, issue, token, table, base, head):
 
     payload = json.dumps(
         {
-            "body": f"{CI_METRICS_HEADER}\n{table}\n🔍 View full report in CIMetrics at `https://cimetrics.io/display/<public key>/<private key>/{repo}/<your branch>/{base}/{head}`."
+            "body": f"{CI_METRICS_HEADER}\n{table}\n🔍 View full report in CIMetrics at `https://cimetrics.io/{repo}/<your branch>/{base}/{head}`."
         }
     )
 
@@ -217,14 +235,15 @@ data_text = os.environ.get(DATA_TEXT)
 data_file = os.environ.get(DATA_FILE)
 repo = os.environ[REPO]
 
+session_cookie = login(public_key, private_key)
 if data_text is None and data_file is not None:
     print(f"data_text: {data_file}")
     data_str = open(data_file, "r").read()
     print(f"data_str: {data_str}")
-    upload(head, public_key, private_key, json.loads(data_str), repo)
+    upload(session_cookie, head, public_key, private_key, json.loads(data_str), repo)
 elif data_text is not None and data_file is None:
     print(f"data_text: {data_text}")
-    upload(head, public_key, private_key, json.loads(data_text), repo)
+    upload(session_cookie, head, public_key, private_key, json.loads(data_text), repo)
 elif data_text is None and data_file is None and repo is None:
     print(f"Neither `{DATA_TEXT}`, `{DATA_FILE}` or `{REPO}` set, skipping upload.")
 else:
@@ -241,7 +260,7 @@ issue = os.environ.get(ISSUE)
 token = os.environ.get(TOKEN)
 
 if base is not None and issue is not None and token is not None and repo is not None:
-    table = diff(base, head, public_key, private_key)
+    table = diff(session_cookie, base, head, public_key, private_key)
     post(repo, issue, token, table, base, head)
 elif base is None and issue is None and token is None:
     print(f"None of `{BASE}`, `{ISSUE}` or `{TOKEN}` set, skipping diff.")
