@@ -221,9 +221,8 @@ print(f"os.environ: {os.environ}")
 
 public_key = os.environ["PUBLIC_KEY"]
 print(f"public_key: {public_key}")
-private_key_str = os.environ["PRIVATE_KEY"]
-print(f"private_key_str: {private_key_str}")
-private_key = int(private_key_str)
+private_key = os.environ["PRIVATE_KEY"]
+print(f"private_key: {private_key}")
 head = os.environ["HEAD"]
 print(f"head: {head}")
 
