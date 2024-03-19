@@ -219,6 +219,16 @@ print(f"repo_opt: {repo_opt}")
 session_cookie = login()
 
 match data_text_opt, data_file_opt, repo_opt:
+    case None, None, None:
+        print(f"Neither `{DATA_TEXT}`, `{DATA_FILE}` or `{REPO}` set, skipping upload.")
+    case [None, None, _]:
+        raise ValueError(
+            f"if `{REPO}` is set, either `{DATA_TEXT}` or `{DATA_FILE}` must be set."
+        )
+    case [_, _, None]:
+        raise ValueError(
+            f"if `{DATA_TEXT}` or `{DATA_FILE}` is set, `{REPO}` must be set."
+        )
     case None, data_file, repo:
         with open(data_file, "r", encoding="utf-8") as file:
             data_str = file.read()
@@ -226,12 +236,11 @@ match data_text_opt, data_file_opt, repo_opt:
             upload(head, data_str)
     case data_text, None, repo:
         upload(head, data_text)
-    case None, None, None:
-        print(f"Neither `{DATA_TEXT}`, `{DATA_FILE}` or `{REPO}` set, skipping upload.")
     case data_text, data_file, _:
         raise ValueError(
             f"`{DATA_TEXT}` ({data_text}) and `{DATA_FILE}` ({data_file}) must not both be set."
         )
+
 
 BASE = "BASE"
 ISSUE = "ISSUE"
@@ -245,12 +254,12 @@ token_opt = os.environ.get(TOKEN)
 print(f"token_opt: {token_opt}")
 
 match base_opt, issue_opt, token_opt, repo_opt:
-    case base, issue, token, repo:
-        post(diff())
     case None, None, None, _:
         print(f"None of `{BASE}`, `{ISSUE}` or `{TOKEN}` set, skipping diff.")
-    case _:
+    case [_, _, None, _] | [_, None, _, _] | [None, _, _, _]:
         raise ValueError(
             f"`{BASE}` ({base_opt}), `{ISSUE}` ({issue_opt}) and `{TOKEN}` ({token_opt}) must all \
                 be set when any are set."
         )
+    case base, issue, token, repo:
+        post(diff())
