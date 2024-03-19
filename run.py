@@ -238,8 +238,11 @@ ISSUE = "ISSUE"
 TOKEN = "TOKEN"
 
 base_opt = os.environ.get(BASE)
+print(f"base_opt: {base_opt}")
 issue_opt = os.environ.get(ISSUE)
+print(f"issue_opt: {issue_opt}")
 token_opt = os.environ.get(TOKEN)
+print(f"token_opt: {token_opt}")
 
 match base_opt, issue_opt, token_opt, repo_opt:
     case base, issue, token, repo:
