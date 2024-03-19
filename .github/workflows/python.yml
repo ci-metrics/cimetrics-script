@@ -1,0 +1,25 @@
+name: Python
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Format
+      run: |
+        pip install black
+        black . --check
+
+    - name: Lint
+      run: |
+        pip install pylint
+        pylint run.py

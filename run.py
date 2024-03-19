@@ -1,15 +1,16 @@
-# import subprocess
-import requests
+"""Script to use in GitHub actions with CIMetrics"""
 import os
 import json
-import sys
+import requests
 
 ADDR = "https://cimetrics.io/"
 CI_METRICS_HEADER = "### CI Metrics"
 GITHUB_REPO_API = "https://api.github.com/repos/"
+TIMEOUT = 10
 
 
-def login(public_key, private_key):
+def login():
+    """Acquires session token"""
     print("Logging in")
 
     url = f"{ADDR}login"
@@ -26,26 +27,16 @@ def login(public_key, private_key):
     )
     print(f"payload: {payload}")
 
-    response = requests.post(
-        url=url,
-        data=payload,
-        headers=headers,
-    )
+    response = requests.post(url=url, data=payload, headers=headers, timeout=TIMEOUT)
     print(f"response: {response}")
     assert response.status_code == 200
 
     return response.cookies
 
 
-# Uploads metrics
-def upload(session_cookie, sha, public_key, private_key, data, repo):
+def upload(sha, data):
+    """Uploads metrics"""
     print("Running upload.")
-
-    url = f"{ADDR}metrics"
-    print(f"url: {url}")
-
-    headers = {"Content-Type": "application/json"}
-    print(f"headers: {headers}")
 
     payload = json.dumps(
         {
@@ -57,31 +48,26 @@ def upload(session_cookie, sha, public_key, private_key, data, repo):
     print(f"payload: {payload}")
 
     response = requests.post(
-        url=url, data=payload, headers=headers, cookies=session_cookie
+        url=f"{ADDR}metrics",
+        data=payload,
+        headers={"Content-Type": "application/json"},
+        cookies=session_cookie,
+        timeout=TIMEOUT,
     )
     print(f"response: {response}")
     assert response.status_code == 200
 
 
-# Gets metrics difference
-def diff(session_cookie, base, head, public_key, private_key):
-    print(f"Running diff.")
-
-    url = f"{ADDR}commits"
-    print(f"url: {url}")
-
-    headers = {"Content-Type": "application/json"}
-    print(f"headers: {headers}")
-
-    payload = json.dumps(
-        {
-            "commits": [base, head],
-        }
-    )
-    print(f"payload: {payload}")
+def diff():
+    """Gets metrics diff between commits"""
+    print("Running diff.")
 
     response = requests.post(
-        url=url, data=payload, headers=headers, cookies=session_cookie
+        url=f"{ADDR}commits",
+        data=json.dumps({"commits": [base, head]}),
+        headers={"Content-Type": "application/json"},
+        cookies=session_cookie,
+        timeout=TIMEOUT,
     )
     print(f"response: {response}")
 
@@ -111,7 +97,7 @@ def diff(session_cookie, base, head, public_key, private_key):
     for key, value in changes.items():
         x = value["from"]
         y = value["to"]
-        if x != None and y != None:
+        if x is not None and y is not None:
             d = y - x
             pd = f"{100 * float(d) / float(x):+.2f}" if x != 0 else "NaN"
             table_set.append(
@@ -139,39 +125,35 @@ def diff(session_cookie, base, head, public_key, private_key):
     def get_sort_key(x):
         if x[1] == "NaN":
             return float(-1)
-        else:
-            return abs(float(x[1]))
+        return abs(float(x[1]))
 
     table_set.sort(reverse=True, key=get_sort_key)
 
     print(f"table_set: {table_set}")
 
-    table = "Metric|∆%|∆|Old|New\n---|--:|--:|--:|--:\n"
+    table_str = "Metric|∆%|∆|Old|New\n---|--:|--:|--:|--:\n"
     for components in table_set:
-        table += "|".join(components)
-        table += "\n"
+        table_str += "|".join(components)
+        table_str += "\n"
 
-    return table
+    return table_str
 
 
-# Posts metrics difference on PRs
-def post(repo, issue, token, table, base, head):
-    print(f"Running post.")
+def post(table):
+    """Posts a metrics comment on a PR"""
+    print("Running post.")
 
-    # Get list of comments
-    url = f"{GITHUB_REPO_API}{repo}/issues/{issue}/comments"
-    print(f"url: {url}")
-
-    headers = {
+    github_headers = {
         "Accept": "application/vnd.github+json",
         "Authorization": f"Bearer {token}",
         "X-GitHub-Api-Version": "2022-11-28",
     }
-    print(f"headers: {headers}")
 
+    # Get list of comments
     response = requests.get(
-        url=url,
-        headers=headers,
+        url=f"{GITHUB_REPO_API}{repo}/issues/{issue}/comments",
+        headers=github_headers,
+        timeout=TIMEOUT,
     )
     print(f"response: {response}")
     assert response.status_code == 200
@@ -179,39 +161,36 @@ def post(repo, issue, token, table, base, head):
     response_json = response.json()
     print(f"response_json: {response_json}")
 
-    id = None
+    comment_id = None
     for comment in response_json:
         if comment["body"].startswith(CI_METRICS_HEADER):
-            id = comment["id"]
-    print(f"id: {id}")
+            comment_id = comment["id"]
+    print(f"comment_id: {comment_id}")
 
     payload = json.dumps(
         {
-            "body": f"{CI_METRICS_HEADER}\n{table}\n🔍 View full report in CIMetrics at `https://cimetrics.io/{repo}/<your branch>/{base}/{head}`."
+            "body": f"{CI_METRICS_HEADER}\n{table}\n🔍 View full report in CIMetrics at \
+                `{ADDR}{repo}/<your branch>/{base}/{head}`."
         }
     )
 
     # If CI metrics comment is not present, post it.
-    if id == None:
-        url = f"{GITHUB_REPO_API}{repo}/issues/{issue}/comments"
-        print(f"url: {url}")
-
+    if comment_id is None:
         response = requests.post(
-            url=url,
+            url=f"{GITHUB_REPO_API}{repo}/issues/{issue}/comments",
             data=payload,
-            headers=headers,
+            headers=github_headers,
+            timeout=TIMEOUT,
         )
         print(f"response: {response}")
         assert response.status_code == 201
     # Else if CI metrics comment present, update it.
     else:
-        url = f"{GITHUB_REPO_API}{repo}/issues/comments/{id}"
-        print(f"url: {url}")
-
         response = requests.patch(
-            url=url,
+            url=f"{GITHUB_REPO_API}{repo}/issues/comments/{comment_id}",
             data=payload,
-            headers=headers,
+            headers=github_headers,
+            timeout=TIMEOUT,
         )
         print(f"response: {response}")
         assert response.status_code == 200
@@ -230,40 +209,45 @@ DATA_TEXT = "DATA_TEXT"
 DATA_FILE = "DATA_FILE"
 REPO = "GITHUB_REPOSITORY"
 
-data_text = os.environ.get(DATA_TEXT)
-data_file = os.environ.get(DATA_FILE)
-repo = os.environ[REPO]
+data_text_opt = os.environ.get(DATA_TEXT)
+print(f"data_text_opt: {data_text_opt}")
+data_file_opt = os.environ.get(DATA_FILE)
+print(f"data_file_opt: {data_file_opt}")
+repo_opt = os.environ[REPO]
+print(f"repo_opt: {repo_opt}")
 
-session_cookie = login(public_key, private_key)
-if data_text is None and data_file is not None:
-    print(f"data_text: {data_file}")
-    data_str = open(data_file, "r").read()
-    print(f"data_str: {data_str}")
-    upload(session_cookie, head, public_key, private_key, json.loads(data_str), repo)
-elif data_text is not None and data_file is None:
-    print(f"data_text: {data_text}")
-    upload(session_cookie, head, public_key, private_key, json.loads(data_text), repo)
-elif data_text is None and data_file is None and repo is None:
-    print(f"Neither `{DATA_TEXT}`, `{DATA_FILE}` or `{REPO}` set, skipping upload.")
-else:
-    raise Exception(
-        f"`{DATA_TEXT}` ({data_text}) and `{DATA_FILE}` ({data_file}) must not both be set."
-    )
+session_cookie = login()
+
+match data_text_opt, data_file_opt, repo_opt:
+    case None, data_file, repo:
+        with open(data_file, "r", encoding="utf-8") as file:
+            data_str = file.read()
+            print(f"data_str: {data_str}")
+            upload(head, data_str)
+    case data_text, None, repo:
+        upload(head, data_text)
+    case None, None, None:
+        print(f"Neither `{DATA_TEXT}`, `{DATA_FILE}` or `{REPO}` set, skipping upload.")
+    case data_text, data_file, _:
+        raise ValueError(
+            f"`{DATA_TEXT}` ({data_text}) and `{DATA_FILE}` ({data_file}) must not both be set."
+        )
 
 BASE = "BASE"
 ISSUE = "ISSUE"
 TOKEN = "TOKEN"
 
-base = os.environ.get(BASE)
-issue = os.environ.get(ISSUE)
-token = os.environ.get(TOKEN)
+base_opt = os.environ.get(BASE)
+issue_opt = os.environ.get(ISSUE)
+token_opt = os.environ.get(TOKEN)
 
-if base is not None and issue is not None and token is not None and repo is not None:
-    table = diff(session_cookie, base, head, public_key, private_key)
-    post(repo, issue, token, table, base, head)
-elif base is None and issue is None and token is None:
-    print(f"None of `{BASE}`, `{ISSUE}` or `{TOKEN}` set, skipping diff.")
-else:
-    raise Exception(
-        f"`{BASE}` ({base}), `{ISSUE}` ({issue}) and `{TOKEN}` ({token}) must all be set when any are set."
-    )
+match base_opt, issue_opt, token_opt, repo_opt:
+    case base, issue, token, repo:
+        post(diff())
+    case None, None, None, _:
+        print(f"None of `{BASE}`, `{ISSUE}` or `{TOKEN}` set, skipping diff.")
+    case _:
+        raise ValueError(
+            f"`{BASE}` ({base_opt}), `{ISSUE}` ({issue_opt}) and `{TOKEN}` ({token_opt}) must all \
+                be set when any are set."
+        )
