@@ -170,7 +170,7 @@ def post(table):
     payload = json.dumps(
         {
             "body": f"{CI_METRICS_HEADER}\n{table}\n🔍 View full report in CIMetrics at \
-                `{ADDR}{repo}/<your branch>/{base}/{head}`."
+                `{ADDR}{public_key}/{repo}/{branch}/{base}/{head}`."
         }
     )
 
@@ -245,6 +245,7 @@ match data_text_opt, data_file_opt, repo_opt:
 BASE = "BASE"
 ISSUE = "ISSUE"
 TOKEN = "TOKEN"
+BRANCH = "BRANCH"
 
 base_opt = os.environ.get(BASE)
 print(f"base_opt: {base_opt}")
@@ -252,14 +253,16 @@ issue_opt = os.environ.get(ISSUE)
 print(f"issue_opt: {issue_opt}")
 token_opt = os.environ.get(TOKEN)
 print(f"token_opt: {token_opt}")
+branch_opt = os.environ.get(BRANCH)
+print(f"branch_opt: {branch_opt}")
 
-match base_opt, issue_opt, token_opt, repo_opt:
-    case None, None, None, _:
+match base_opt, issue_opt, token_opt, repo_opt, branch_opt:
+    case None, None, None, _, _:
         print(f"None of `{BASE}`, `{ISSUE}` or `{TOKEN}` set, skipping diff.")
-    case [_, _, None, _] | [_, None, _, _] | [None, _, _, _]:
+    case [_, _, None, _, _] | [_, None, _, _, _] | [None, _, _, _, _]:
         raise ValueError(
             f"`{BASE}` ({base_opt}), `{ISSUE}` ({issue_opt}) and `{TOKEN}` ({token_opt}) must all \
                 be set when any are set."
         )
-    case base, issue, token, repo:
+    case base, issue, token, repo, branch:
         post(diff())
