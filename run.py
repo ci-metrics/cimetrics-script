@@ -13,23 +13,19 @@ def login():
     """Acquires session token"""
     print("Logging in")
 
-    url = f"{ADDR}login"
-    print(f"url: {url}")
-
-    headers = {"Content-Type": "application/json"}
-    print(f"headers: {headers}")
-
-    payload = json.dumps(
-        {
-            "public_key": public_key,
-            "private_key": private_key,
-        }
+    response = requests.post(
+        url=f"{ADDR}login",
+        data=json.dumps(
+            {
+                "public_key": public_key,
+                "private_key": private_key,
+            }
+        ),
+        headers={"Content-Type": "application/json"},
+        timeout=TIMEOUT,
     )
-    print(f"payload: {payload}")
-
-    response = requests.post(url=url, data=payload, headers=headers, timeout=TIMEOUT)
     print(f"response: {response}")
-    assert response.status_code == 200
+    assert response.status_code == 200, response.text
 
     return response.cookies
 
@@ -55,7 +51,7 @@ def upload(sha, data):
         timeout=TIMEOUT,
     )
     print(f"response: {response}")
-    assert response.status_code == 200
+    assert response.status_code == 200, response.text
 
 
 def diff():
@@ -71,7 +67,7 @@ def diff():
     )
     print(f"response: {response}")
 
-    assert response.status_code == 200
+    assert response.status_code == 200, response.text
 
     response_json = response.json()
     print(f"response_json: {response_json}")
