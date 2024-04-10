@@ -165,8 +165,7 @@ def post(table):
 
     payload = json.dumps(
         {
-            "body": f"{CI_METRICS_HEADER}\n{table}\n🔍 View full report in CIMetrics at \
-                `{ADDR}{public_key}/{repo}/{branch}/{base}/{head}`."
+            "body": f"{CI_METRICS_HEADER}\n{table}\n[🔍 View the full report in CIMetrics]({ADDR}{public_key}/{repo}/{branch}/{base}/{head})"
         }
     )
 
