@@ -59,8 +59,8 @@ def diff():
     print("Running diff.")
 
     response = requests.post(
-        url=f"{ADDR}commits",
-        data=json.dumps({"commits": [base, head]}),
+        url=f"{ADDR}check_alarms",
+        data=json.dumps({"first": base, "second": head}),
         headers={"Content-Type": "application/json"},
         cookies=session_cookie,
         timeout=TIMEOUT,
@@ -76,17 +76,8 @@ def diff():
     assert head in response_json
 
     changes = {}
-    commit_one = response_json[base]
-    for key, value in commit_one.items():
-        changes[key] = {"from": value, "to": None}
-
-    commit_two = response_json[head]
-    for key, value in commit_two.items():
-        if key in changes:
-            changes[key]["to"] = value
-        else:
-            changes[key] = {"from": None, "to": value}
-
+    for key, value in response_json.items():
+        changes[key] = {"from": value["from"], "to": value["to"]}
     print(f"changes: {changes}")
 
     table_set = []
