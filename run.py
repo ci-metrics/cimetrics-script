@@ -72,9 +72,6 @@ def diff():
     response_json = response.json()
     print(f"response_json: {response_json}")
 
-    assert base in response_json
-    assert head in response_json
-
     changes = {}
     for key, value in response_json.items():
         changes[key] = {"from": value["from"], "to": value["to"]}
